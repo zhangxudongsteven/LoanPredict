@@ -1,0 +1,136 @@
+---
+title: "LoanPredictTest3.Rmd"
+author: "Steven"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, cache = TRUE)
+```
+
+### Load Data
+
+```{r loading}
+df <- read.csv("../data/LoanPredict/workset_half_half.csv")
+df <-  df[sample(nrow(df), nrow(df)), ]
+df.train <- df[1:round(nrow(df)*0.8),]
+df.test <- df[(round(nrow(df)*0.8)+1):nrow(df),]
+df.train.target <- df.train$loss
+df.test.ans <- df.test$loss
+df.train.default <- as.integer(df.train.target > 0)
+df.test.default <- as.integer(df.test.ans > 0)
+df.train.data <- df.train[,2:770]
+df.test.data <- df.test[,2:770]
+df.data <- rbind(df.train.data, df.test.data)
+df.default <- c(df.train.default, df.test.default)
+rm(df.train, df.test, df.test.ans, df.train.target)
+df.workset <- read.csv("data/LoanPredict/workset_imputed.csv")
+df.workset.default <- as.integer(df.workset$loss > 0)
+df.workset.data <- df.workset[,2:770]
+```
+
+### test the 100 iteration model
+
+```{r xgboost100}
+library(xgboost)
+library(ggplot2)
+bst <- xgb.load("model/xgboost.loan.halfhalfset.100rounds.model")
+# run it on test set for 0.8 quantile
+pred <- predict(bst, as.matrix(df.test.data))
+flag <- pred < quantile(pred, 0.5)
+pred[flag] = 0
+pred[!flag] = 1
+table(pred, df.test.default) / length(df.test.default) * 100
+# run it on work set for 0.8 quantile
+pred <- predict(bst, as.matrix(df.workset.data))
+flag <- pred < quantile(pred, 0.8)
+pred[flag] = 0
+pred[!flag] = 1
+table(pred, df.workset.default) / length(df.workset.default) * 100
+# draw the density diagram
+pred <- predict(bst, as.matrix(df.test.data))
+temp <- data.frame(pred, df.test.default)
+e <- ggplot(temp, aes(pred))
+rm(temp)
+e + geom_density() + facet_grid(.~df.test.default)
+```
+
+### test the 200 iteration model
+
+```{r xgboost200}
+bst <- xgb.load("model/xgboost.loan.halfhalfset.200rounds.model")
+# run it on test set for 0.5 quantile
+pred <- predict(bst, as.matrix(df.test.data))
+flag <- pred < quantile(pred, 0.5)
+pred[flag] = 0
+pred[!flag] = 1
+table(pred, df.test.default) / length(df.test.default) * 100
+# run it on work set for 0.8 quantile
+pred <- predict(bst, as.matrix(df.workset.data))
+flag <- pred < quantile(pred, 0.8)
+pred[flag] = 0
+pred[!flag] = 1
+table(pred, df.workset.default) / length(df.workset.default) * 100
+# draw the density diagram
+pred <- predict(bst, as.matrix(df.test.data))
+temp <- data.frame(pred, df.test.default)
+e <- ggplot(temp, aes(pred))
+rm(temp)
+e + geom_density() + facet_grid(.~df.test.default)
+```
+
+### test the 300 iteration model
+
+```{r xgboost300}
+bst <- xgb.load("model/xgboost.loan.halfhalfset.300rounds.model")
+# run it on test set for 0.5 quantile
+pred <- predict(bst, as.matrix(df.test.data))
+flag <- pred < quantile(pred, 0.5)
+pred[flag] = 0
+pred[!flag] = 1
+table(pred, df.test.default) / length(df.test.default) * 100
+# run it on work set for 0.8 quantile
+pred <- predict(bst, as.matrix(df.workset.data))
+flag <- pred < quantile(pred, 0.8)
+pred[flag] = 0
+pred[!flag] = 1
+table(pred, df.workset.default) / length(df.workset.default) * 100
+# draw the density diagram
+pred <- predict(bst, as.matrix(df.test.data))
+temp <- data.frame(pred, df.test.default)
+e <- ggplot(temp, aes(pred))
+rm(temp)
+e + geom_density() + facet_grid(.~df.test.default)
+```
+
+From the analysis above, we can see the 300-iteration boosting classification model roughly meets the requirments. Next, we will use it in the total training set, to extract a 20% top danger observation.
+
+### test the 400 iteration model
+
+```{r xgboost400}
+bst <- xgb.load("model/xgboost.loan.halfhalfset.400rounds.model")
+# run it on test set for 0.5 quantile
+pred <- predict(bst, as.matrix(df.test.data))
+flag <- pred < quantile(pred, 0.5)
+pred[flag] = 0
+pred[!flag] = 1
+table(pred, df.test.default) / length(df.test.default) * 100
+# run it on work set for 0.8 quantile
+pred <- predict(bst, as.matrix(df.workset.data))
+flag <- pred < quantile(pred, 0.8)
+pred[flag] = 0
+pred[!flag] = 1
+table(pred, df.workset.default) / length(df.workset.default) * 100
+# draw the density diagram
+pred <- predict(bst, as.matrix(df.test.data))
+temp <- data.frame(pred, df.test.default)
+e <- ggplot(temp, aes(pred))
+rm(temp)
+e + geom_density() + facet_grid(.~df.test.default)
+```
+
+### environment summary
+
+```{r environment-summary}
+sessionInfo()
+```
